@@ -13,8 +13,22 @@ export default function LoginPage() {
 
   // ✅ Listen for login/signup events and redirect after session is ready
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) router.push('/') // redirect to home page once authenticated
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        // Check if user has an active goal
+        const { data: userGoal } = await supabase
+          .from('user_goals')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('is_active', true)
+          .single()
+        
+        if (!userGoal) {
+          router.push('/onboarding') // new user without goal
+        } else {
+          router.push('/') // returning user with goal
+        }
+      }
     })
 
     return () => {

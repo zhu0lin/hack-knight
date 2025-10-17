@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Section from '@/components/Section'
-import RadioRow from '@/components/RadioRow'
 import GroupPill from '@/components/GroupPill'
 import ProgressBar from '@/components/ProgressBar'
 import CardSub from '@/components/CardSub'
@@ -10,11 +9,9 @@ import { PrimaryButton, GhostButton } from '@/components/Buttons'
 import { soft } from '@/lib/theme'
 import { supabase } from '@/lib/client'
 import { useRouter } from 'next/navigation'
-
-type Goal = 'balanced' | 'loss' | 'gain' | 'diabetes'
+import { Upload, Camera } from 'lucide-react'
 
 export default function Page() {
-  const [goal, setGoal] = useState<Goal>('balanced')
   const [message, setMessage] = useState('Loading...')
   const [session, setSession] = useState<any>(null)
   const [foodGroups, setFoodGroups] = useState<Record<string, boolean>>({
@@ -86,9 +83,12 @@ export default function Page() {
   return (
     <>
       <header className="text-center space-y-2">
-        <div className="flex justify-end mb-2">
+        <div className="flex justify-end gap-2 mb-2">
           {session ? (
-            <GhostButton onClick={handleSignOut}>Log Out</GhostButton>
+            <>
+              <GhostButton onClick={() => router.push('/profile')}>Profile</GhostButton>
+              <GhostButton onClick={handleSignOut}>Log Out</GhostButton>
+            </>
           ) : (
             <PrimaryButton onClick={() => router.push('/login')}>Sign In</PrimaryButton>
           )}
@@ -98,22 +98,6 @@ export default function Page() {
           Track your daily food groups and build a balanced diet
         </p>
       </header>
-
-      <Section
-        title="Your Goal"
-        subtitle="Customize recommendations based on your health goals"
-      >
-        <div className="grid gap-3">
-          {goalOptions.map(opt => (
-            <RadioRow
-              key={opt.value}
-              checked={goal === opt.value}
-              label={opt.label}
-              onChange={() => setGoal(opt.value as Goal)}
-            />
-          ))}
-        </div>
-      </Section>
 
       <Section
         title="Today's Progress"
@@ -148,13 +132,35 @@ export default function Page() {
         title="Add a Meal"
         subtitle="Take a photo or upload an image of your food"
       >
-        <div className="flex flex-wrap gap-3">
-          <PrimaryButton onClick={() => cameraRef.current?.click()}>
-            📷 Take Photo
-          </PrimaryButton>
-          <GhostButton onClick={() => uploadRef.current?.click()}>
-            ⬆️ Upload
-          </GhostButton>
+        <div className="space-y-4">
+          {/* Upload Box - Clickable */}
+          <button
+            onClick={() => uploadRef.current?.click()}
+            className="w-full bg-white border-4 border-[#2BAA66] rounded-2xl p-12 hover:bg-[#F1FBF6] transition-all cursor-pointer group"
+          >
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <Upload size={48} className="text-[#2BAA66]" strokeWidth={2} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-[#0B3B29] group-hover:text-[#2BAA66] transition-colors">
+                  Upload Image
+                </h3>
+                <p className="text-[#5E7F73]">
+                  Click anywhere in this box to upload a photo of your meal
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Take Photo Button - Separate */}
+          <button
+            onClick={() => cameraRef.current?.click()}
+            className="w-full bg-[#2BAA66] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[#27A05F] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-3"
+          >
+            <Camera size={20} strokeWidth={2} />
+            Take Photo
+          </button>
         </div>
 
         <input
@@ -186,10 +192,3 @@ export default function Page() {
     </>
   )
 }
-
-const goalOptions = [
-  { value: 'balanced', label: 'Balanced Diet – General health and wellness' },
-  { value: 'loss', label: 'Weight Loss – Focus on portion control and nutrients' },
-  { value: 'gain', label: 'Weight Gain – Calorie-dense, nutritious foods' },
-  { value: 'diabetes', label: 'Diabetes Management – Low-glycemic, balanced meals' },
-]

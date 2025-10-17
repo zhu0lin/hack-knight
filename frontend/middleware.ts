@@ -24,19 +24,32 @@ export async function middleware(req: NextRequest) {
 
   await supabase.auth.getSession() // ensures cookies refresh
 
-  if (!req.nextUrl.pathname.startsWith('/login') &&
-      !req.nextUrl.pathname.startsWith('/dashboard')) {
-    return res // '/' stays public
+  // Public routes: /, /login, /onboarding
+  const publicRoutes = ['/', '/login', '/onboarding']
+  const isPublicRoute = publicRoutes.some(route => 
+    req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
+  )
+
+  if (isPublicRoute) {
+    return res
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // Protected routes: /profile, /dashboard
+  const protectedRoutes = ['/profile', '/dashboard']
+  const isProtectedRoute = protectedRoutes.some(route => 
+    req.nextUrl.pathname.startsWith(route)
+  )
 
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    return NextResponse.redirect(redirectUrl)
+  if (isProtectedRoute) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/login'
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   return res
