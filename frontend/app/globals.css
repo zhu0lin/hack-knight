@@ -1,28 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
 }
 
 body {
-  color: #e0e0e0;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-  min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.card {
+  @apply bg-white border border-[#D9F1E3] rounded-2xl shadow-md shadow-[#00000008] p-6 flex flex-col gap-5 transition-all;
 }
 
+button {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+button:hover {
+  filter: brightness(0.98);
+}
