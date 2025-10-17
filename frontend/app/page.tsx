@@ -8,12 +8,15 @@ import ProgressBar from '@/components/ProgressBar'
 import CardSub from '@/components/CardSub'
 import { PrimaryButton, GhostButton } from '@/components/Buttons'
 import { soft } from '@/lib/theme'
+import { supabase } from '@/lib/client'
+import { useRouter } from 'next/navigation'
 
 type Goal = 'balanced' | 'loss' | 'gain' | 'diabetes'
 
 export default function Page() {
   const [goal, setGoal] = useState<Goal>('balanced')
   const [message, setMessage] = useState('Loading...')
+  const [session, setSession] = useState<any>(null)
   const [foodGroups, setFoodGroups] = useState<Record<string, boolean>>({
     Fruits: false,
     Vegetables: false,
@@ -25,6 +28,7 @@ export default function Page() {
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const uploadRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -32,6 +36,20 @@ export default function Page() {
       .then(r => r.json())
       .then(d => setMessage(d.message))
       .catch(() => setMessage('Error connecting to backend'))
+  }, [])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => {
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   const completed = useMemo(
@@ -55,6 +73,10 @@ export default function Page() {
     })
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+  }
+
   const recs = [
     'Add some fruit for vitamins and fiber',
     'Include vegetables for essential nutrients',
@@ -64,6 +86,13 @@ export default function Page() {
   return (
     <>
       <header className="text-center space-y-2">
+        <div className="flex justify-end mb-2">
+          {session ? (
+            <GhostButton onClick={handleSignOut}>Log Out</GhostButton>
+          ) : (
+            <PrimaryButton onClick={() => router.push('/login')}>Sign In</PrimaryButton>
+          )}
+        </div>
         <h1 className="text-4xl font-bold text-[#0B3B29]">NutriBalance</h1>
         <p className="text-[#5E7F73] text-lg">
           Track your daily food groups and build a balanced diet
@@ -145,11 +174,11 @@ export default function Page() {
         />
       </Section>
 
-      <Section title="Debug" subtitle="Backend Connection">
+      {/* <Section title="Debug" subtitle="Backend Connection">
         <p className="text-sm text-[#5E7F73]">
           <strong>Backend Response:</strong> {message}
         </p>
-      </Section>
+      </Section> */}
 
       <footer className="text-center text-[#5E7F73] mt-6">
         <small>© {new Date().getFullYear()} NutriBalance</small>
