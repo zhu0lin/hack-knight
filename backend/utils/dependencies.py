@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import Depends, Header
-from backend.services.auth_service import auth_service
-from backend.utils.exceptions import AuthenticationError
+from services.auth_service import auth_service
+from utils.exceptions import AuthenticationError
 
 
 async def get_current_user_id(authorization: Optional[str] = Header(None)) -> str:

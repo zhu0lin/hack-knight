@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict
 from datetime import datetime, date
 from uuid import UUID
-from backend.services.supabase_client import get_supabase
+from services.supabase_client import get_supabase
 
 
 class FoodService:

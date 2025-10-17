@@ -2,8 +2,8 @@ from typing import Optional
 import base64
 from datetime import datetime
 import uuid
-from backend.services.supabase_client import get_supabase
-from backend.config.settings import settings
+from services.supabase_client import get_supabase
+from config.settings import settings
 
 
 class StorageService:

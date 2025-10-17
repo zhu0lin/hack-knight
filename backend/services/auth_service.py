@@ -1,7 +1,7 @@
 from typing import Optional, Dict
 from jose import jwt, JWTError
-from backend.config.settings import settings
-from backend.services.supabase_client import get_supabase
+from config.settings import settings
+from services.supabase_client import get_supabase
 
 
 class AuthService:

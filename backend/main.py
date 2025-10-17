@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from backend.config.settings import settings
+from config.settings import settings
 
 # Import all route modules
-from backend.routes import auth, users, food, goals, analytics, social
+from routes import auth, users, food, goals, analytics, social
 
 app = FastAPI(
     title=settings.APP_NAME,

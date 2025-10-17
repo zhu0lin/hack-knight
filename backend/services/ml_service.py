@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 import httpx
-from backend.config.settings import settings
+from config.settings import settings
 
 
 class MLService:

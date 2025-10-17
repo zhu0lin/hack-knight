@@ -5,13 +5,13 @@ from typing import Optional
 class Settings(BaseSettings):
     """Application settings and environment variables"""
     
-    # Supabase Configuration
+    # Supabase Configuration (required - set in .env file)
     SUPABASE_URL: str
     SUPABASE_KEY: str
     SUPABASE_JWT_SECRET: str
     STORAGE_BUCKET_NAME: str = "food-images"
     
-    # ML Service Configuration
+    # ML Service Configuration (optional)
     ML_SERVICE_URL: Optional[str] = None
     
     # Application Configuration
@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8'
         case_sensitive = True
 
 

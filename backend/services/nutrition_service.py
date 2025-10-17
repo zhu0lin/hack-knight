@@ -1,6 +1,6 @@
 from typing import Dict, List
 from datetime import date, timedelta
-from backend.services.supabase_client import get_supabase
+from services.supabase_client import get_supabase
 
 
 class NutritionService:
