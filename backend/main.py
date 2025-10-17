@@ -1,30 +1,47 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-import os
+from backend.config.settings import settings
+
+# Import all route modules
+from backend.routes import auth, users, food, goals, analytics, social
 
 app = FastAPI(
-    title="Hack Knight API",
-    description="Backend API for Hack Knight application",
-    version="1.0.0"
+    title=settings.APP_NAME,
+    description="Backend API for Food App - Track your nutrition and reach your health goals",
+    version=settings.APP_VERSION,
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Register all route modules
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(food.router)
+app.include_router(goals.router)
+app.include_router(analytics.router)
+app.include_router(social.router)
+
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {
-        "message": "Welcome to Hack Knight API! 🏰",
+        "message": "Welcome to Food App API! 🍎",
+        "description": "Track your nutrition, achieve your health goals",
         "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT,
+        "docs": "/docs",
+        "redoc": "/redoc"
     }
 
 @app.get("/health")
@@ -33,15 +50,8 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "environment": os.getenv("ENVIRONMENT", "development")
-    }
-
-@app.get("/api/hello")
-async def hello():
-    """Sample API endpoint"""
-    return {
-        "message": "Hello from FastAPI!",
-        "description": "This is a sample endpoint to demonstrate the API structure"
+        "environment": settings.ENVIRONMENT,
+        "version": settings.APP_VERSION
     }
 
 if __name__ == "__main__":
