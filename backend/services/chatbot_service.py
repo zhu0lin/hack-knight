@@ -64,34 +64,34 @@ Food Logs ({len(today_logs)} items):
             print(f"Error gathering user context: {e}")
             return "Unable to retrieve user nutrition data at this time."
     
-    async def chat(self, user_id: str, message: str, include_context: bool = True) -> str:
+    async def chat(self, user_id: Optional[str], message: str, include_context: bool = True) -> str:
         """
         Send message to Gemini chatbot with optional user context
         
         Args:
-            user_id: User's UUID
+            user_id: User's UUID (optional - if None, provides general advice)
             message: User's question/message
-            include_context: Whether to include user's nutrition data
+            include_context: Whether to include user's nutrition data (requires user_id)
             
         Returns:
             Chatbot response
         """
         try:
             # Build the prompt
-            system_prompt = """You are a helpful nutrition assistant for a food tracking app called Food App. 
+            system_prompt = """You are a helpful nutrition assistant for a food tracking app called NutriBalance. 
 Your role is to help users understand their nutrition, answer questions about their food intake, 
 and provide encouraging, scientifically-accurate nutrition advice.
 
 Key responsibilities:
-- Answer questions about their daily nutrition progress
-- Explain what food groups they're missing
+- Answer questions about daily nutrition progress
+- Explain what food groups are important
 - Provide suggestions for balanced meals
 - Encourage healthy eating habits
 - Explain nutrition concepts simply
 
 Keep responses concise, friendly, and actionable. Use emojis occasionally to be engaging."""
 
-            if include_context:
+            if include_context and user_id:
                 user_context = await self.get_user_context(user_id)
                 full_prompt = f"""{system_prompt}
 

@@ -12,26 +12,23 @@ router = APIRouter(prefix="/api/chatbot", tags=["Chatbot"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_with_bot(
-    request: ChatRequest,
-    user_id: str = Depends(get_current_user_id)
-):
+async def chat_with_bot(request: ChatRequest):
     """
     Send a message to the nutrition chatbot
     
-    The chatbot will use the user's current nutrition data to provide
-    personalized, context-aware responses.
+    The chatbot can provide general nutrition advice or personalized responses
+    if a user_id is provided with context.
     """
     try:
         response = await chatbot_service.chat(
-            user_id=user_id,
+            user_id=request.user_id,
             message=request.message,
             include_context=request.include_context
         )
         
         return ChatResponse(
             response=response,
-            user_id=user_id
+            user_id=request.user_id
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chatbot error: {str(e)}")
