@@ -281,6 +281,7 @@ export default function Page() {
                 {/* Image Section */}
                 {meal.image_url ? (
                   <div className="relative h-48 bg-gradient-to-br from-gray-50 to-gray-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={meal.image_url} 
                       alt={meal.detected_food_name}

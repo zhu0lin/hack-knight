@@ -11,11 +11,11 @@ class Settings(BaseSettings):
     SUPABASE_JWT_SECRET: str
     STORAGE_BUCKET_NAME: str = "food-images"
     
-    # ML Service Configuration (optional)
-    ML_SERVICE_URL: Optional[str] = None
+    # Custom ML Service Configuration
+    ML_SERVICE_URL: Optional[str] = None  # URL to your custom trained model
     
-    # Gemini AI Configuration
-    GEMINI_API_KEY: str
+    # Gemini AI Configuration (optional - only needed for chatbot)
+    GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-pro"
     
     # Application Configuration

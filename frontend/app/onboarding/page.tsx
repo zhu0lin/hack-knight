@@ -73,7 +73,7 @@ export default function OnboardingPage() {
       <div className="bg-white border border-[#D9F1E3] rounded-2xl shadow-md w-full max-w-md p-8 space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-[#0B3B29]">Welcome to NutriBalance!</h1>
-          <p className="text-[#5E7F73]">Let's personalize your experience</p>
+          <p className="text-[#5E7F73]">Let&apos;s personalize your experience</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

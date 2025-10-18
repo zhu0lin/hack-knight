@@ -17,16 +17,17 @@ For busy adults, finding time to cook healthy meals is challenging. This leads t
 
 ### Current MVP Features
 - 📸 **Food Image Upload** - Take or upload photos of meals
-- 🤖 **ML Food Recognition** - Automatic food categorization and health scoring
-- 📊 **Nutrition Tracking** - Track daily intake across food groups
-- 🎯 **Goal Setting** - Personalize for weight loss, gain, or maintenance
+- 🤖 **Custom ML Food Recognition** - Automatic food detection, categorization, and health scoring using your trained model
+- 📊 **Nutrition Tracking** - Track daily intake across all food groups
+- 🎯 **Weight Goal Personalization** - Personalized recommendations for weight loss, gain, maintenance, or diabetes management
 - 🔥 **Streak Tracking** - Monitor consecutive days of balanced nutrition
 - 📈 **Analytics Dashboard** - View daily and weekly summaries
+- 💬 **AI Nutrition Chatbot** - Goal-aware chatbot (optional: uses Gemini API if configured)
+- 🎨 **Personalized Recommendations** - Calorie targets and meal suggestions based on your goals
 
 ### Future Features (Planned)
-- 💬 **AI Chatbot** - Quick answers to nutrition questions
 - 👥 **Social Features** - Friend groups and accountability
-- 🎨 **Personalized Recommendations** - Based on goals and preferences
+- 📱 **Mobile App** - React Native mobile version
 
 ## 🏗️ Tech Stack
 
@@ -39,12 +40,13 @@ For busy adults, finding time to cook healthy meals is challenging. This leads t
 - **FastAPI** - High-performance Python API
 - **Supabase** - PostgreSQL database, authentication, and storage
 - **Python 3.11** - Modern Python with async support
+- **Custom ML Model** - Your trained food recognition model (deployed separately)
 
 ### Infrastructure
 - **Docker** - Containerization for both services
 - **Docker Compose** - Multi-container orchestration
 - **Supabase Storage** - Image storage
-- **Custom ML Service** - Food recognition model (to be deployed)
+- **ML Service** - Your custom trained food recognition model (to be deployed)
 
 ## 🚀 Quick Start
 
@@ -90,7 +92,12 @@ Comprehensive documentation is available in the `docs/` folder:
 | [PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) | Overall project architecture and workflow |
 | [BACKEND_ARCHITECTURE.md](docs/BACKEND_ARCHITECTURE.md) | Complete backend design and architecture |
 | [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Step-by-step setup with SQL scripts |
-| [IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md) | What's built and what's next |
+| [CLOUDFLARE_DEPLOYMENT_GUIDE.md](docs/CLOUDFLARE_DEPLOYMENT_GUIDE.md) | **⭐ NEW:** Complete deployment guide (Cloudflare + Railway) |
+| [CUSTOM_ML_MODEL_GUIDE.md](docs/CUSTOM_ML_MODEL_GUIDE.md) | **NEW:** How to integrate your trained ML model |
+| [WEIGHT_GOALS_AND_VISION_API.md](docs/WEIGHT_GOALS_AND_VISION_API.md) | Weight goals personalization features |
+| [API_QUICK_REFERENCE.md](docs/API_QUICK_REFERENCE.md) | Quick reference for API endpoints |
+| [ML_MODEL_CHANGES_SUMMARY.md](docs/ML_MODEL_CHANGES_SUMMARY.md) | ML model integration changes |
+| [CHATBOT_UPDATE.md](docs/CHATBOT_UPDATE.md) | Chatbot features and examples |
 
 ## 🗄️ Database Schema
 
@@ -126,7 +133,14 @@ See [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) for complete SQL schemas.
 ### Goals
 - `POST /api/goals` - Set health goal
 - `GET /api/goals` - Get active goal
-- `GET /api/goals/recommendations` - Personalized recommendations
+- `GET /api/goals/recommendations` - Personalized nutrition recommendations by goal
+- `POST /api/goals/calculate-calories` - Calculate personalized calorie target
+
+### Chatbot
+- `POST /api/chatbot/chat` - Chat with AI nutrition assistant
+- `GET /api/chatbot/missing-groups` - Quick: What food groups am I missing?
+- `GET /api/chatbot/meal-suggestions` - Quick: What should I eat next?
+- `GET /api/chatbot/nutrition-tips` - Quick: Give me nutrition tips
 
 Full API documentation at http://localhost:8000/docs
 
@@ -212,11 +226,19 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 
 ### Backend (.env)
 ```env
+# Supabase Configuration (required)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-anon-key
 SUPABASE_JWT_SECRET=your-jwt-secret
 STORAGE_BUCKET_NAME=food-images
-ML_SERVICE_URL=  # Optional, uses mock data if not set
+
+# Custom ML Model (set when you deploy your trained model)
+ML_SERVICE_URL=http://your-ml-service-url/api  # URL to your custom food recognition model
+
+# Optional: Gemini API for chatbot (leave empty to disable chatbot)
+GEMINI_API_KEY=  # Optional - only needed if using AI chatbot
+GEMINI_MODEL=gemini-pro
+
 ENVIRONMENT=development
 ```
 
@@ -234,37 +256,90 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 | Database Models | ✅ Complete | 100% |
 | API Routes (Skeleton) | ✅ Complete | 100% |
 | Service Layer | ✅ Complete | 100% |
-| Auth Implementation | 🔨 In Progress | 0% |
-| Food Upload | 🔨 In Progress | 0% |
-| Analytics | 🔨 In Progress | 0% |
-| ML Model Integration | 📋 Planned | 0% |
+| **ML Service Integration** | ✅ **Complete** | **100%** |
+| **Weight Goal Personalization** | ✅ **Complete** | **100%** |
+| **AI Nutrition Chatbot** | ✅ **Complete** | **100%** |
+| Food Upload Endpoint | ✅ Complete | 100% |
+| Custom ML Model Deployment | 📋 Planned | 0% |
+| Analytics Endpoints | ✅ Complete | 100% |
+| Auth Implementation | 🔨 In Progress | 50% |
+| Frontend-Backend Integration | 🔨 In Progress | 30% |
 | Social Features | 📋 Planned | 0% |
 
-**Overall Progress: ~60%**
+**Overall Progress: ~80%**
 
 See [IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md) for details.
+
+## 🚀 Deployment
+
+### Quick Deploy (Recommended)
+
+**Frontend**: Cloudflare Pages (Free)  
+**Backend**: Railway (Free tier available)  
+**Database**: Supabase (Free tier sufficient)
+
+#### Option 1: Automated Scripts
+
+```bash
+# Deploy everything
+./deploy-all.sh
+
+# Or deploy individually
+./deploy-railway.sh      # Backend
+./deploy-cloudflare.sh   # Frontend
+```
+
+#### Option 2: Manual via GitHub
+
+1. **Push to GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Deploy Backend to Railway**
+   - Go to [railway.app](https://railway.app)
+   - Connect GitHub repo
+   - Select `backend` folder
+   - Add environment variables
+   - Deploy
+
+3. **Deploy Frontend to Cloudflare Pages**
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Pages → Create project
+   - Connect GitHub repo
+   - Root directory: `frontend`
+   - Build command: `npm run build`
+   - Set env: `NEXT_PUBLIC_API_URL=<railway-url>`
+   - Deploy
+
+📖 **Full Guide**: [docs/CLOUDFLARE_DEPLOYMENT_GUIDE.md](docs/CLOUDFLARE_DEPLOYMENT_GUIDE.md)
+
+---
 
 ## 🎯 Next Steps
 
 ### Immediate (This Week)
 1. ✅ Set up Supabase database with SQL scripts
-2. 🔨 Implement authentication flow
-3. 🔨 Implement food upload endpoint
-4. 🔨 Build frontend food upload UI
-5. 🔨 Connect frontend to backend APIs
+2. ✅ Implement food upload endpoint
+3. ✅ Implement weight goal personalization
+4. ✅ Integrate AI chatbot with goal awareness
+5. 🔨 Deploy to production
+6. 🔨 Build frontend food upload UI
+7. 🔨 Connect frontend to backend APIs
 
 ### Short Term (Next 2 Weeks)
-6. Deploy ML food recognition model
-7. Implement analytics endpoints
-8. Build nutrition dashboard UI
-9. Add streak visualization
-10. User profile and onboarding flow
+8. Deploy ML model
+9. Build goal setting UI
+10. Build nutrition dashboard UI
+11. Add chatbot UI component
+12. User testing and feedback
 
 ### Long Term
-11. Chatbot integration
-12. Social features
-13. Mobile app (React Native)
-14. Advanced meal planning
+13. Social features (friend groups)
+14. Mobile app (React Native)
+15. Advanced meal planning
+16. Portion size detection
+17. Recipe analysis
 
 ## 🤝 Contributing
 

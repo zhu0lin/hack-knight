@@ -123,7 +123,7 @@ export default function ChatDialog({ isOpen, onClose }: ChatDialogProps) {
             <div className="text-center space-y-4 mt-8">
               <div className="space-y-1">
                 <h3 className="text-base font-semibold text-[#0B3B29]">
-                  Hi! I'm your nutrition assistant.
+                  Hi! I&apos;m your nutrition assistant.
                 </h3>
                 <p className="text-sm text-[#5E7F73]">
                   Ask me about your diet and nutrition.
