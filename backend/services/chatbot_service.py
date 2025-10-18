@@ -4,15 +4,20 @@ from datetime import date
 from config.settings import settings
 from services.food_service import food_service
 from services.nutrition_service import nutrition_service
+from services.goal_service import goal_service
 
 
 class ChatbotService:
     """Service for Gemini AI chatbot integration"""
     
     def __init__(self):
-        # Configure Gemini API
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
+        # Configure Gemini API if key is provided
+        self.model = None
+        if settings.GEMINI_API_KEY:
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
+        else:
+            print("Warning: GEMINI_API_KEY not configured, chatbot will return placeholder responses")
     
     async def get_user_context(self, user_id: str) -> str:
         """
@@ -42,6 +47,9 @@ class ChatbotService:
             # Get user's streak
             streak_info = await nutrition_service.calculate_streak(user_id)
             
+            # Get user's goal
+            user_goal = await goal_service.get_active_goal(user_id)
+            
             # Count categories from today's meals
             category_counts = {
                 'fruit': 0,
@@ -66,6 +74,31 @@ class ChatbotService:
 - Missing groups: {', '.join(missing_groups) if missing_groups else 'None'}
 - Current streak: {streak_info.get('current_streak', 0)} days"""
             
+            # Add goal information
+            if user_goal:
+                goal_type = user_goal.get('goal_type', 'maintain')
+                target_cals = user_goal.get('target_calories')
+                
+                goal_names = {
+                    'lose_weight': 'Weight Loss',
+                    'gain_weight': 'Weight Gain',
+                    'maintain': 'Maintenance',
+                    'diabetes_management': 'Diabetes Management'
+                }
+                
+                context += f"\n- Goal: {goal_names.get(goal_type, goal_type)}"
+                if target_cals:
+                    context += f"\n- Target calories: {target_cals}"
+                    remaining = target_cals - total_calories
+                    context += f"\n- Calories remaining: {remaining}"
+                
+                # Get personalized advice
+                advice = await goal_service.get_personalized_advice(
+                    user_id, total_calories, category_counts
+                )
+                if advice:
+                    context += f"\n- Goal advice: {advice}"
+            
             if today_logs:
                 foods = [log.get('detected_food_name', 'Unknown') for log in today_logs[:5]]
                 context += f"\n- Recent meals: {', '.join(foods)}"
@@ -88,8 +121,12 @@ class ChatbotService:
             Chatbot response
         """
         try:
+            # Check if Gemini is configured
+            if not self.model:
+                return "Chatbot is not configured. Please set GEMINI_API_KEY in your environment variables to enable the AI chatbot feature."
+            
             # Build the prompt
-            system_prompt = """You are a nutrition assistant for NutriBalance, a food tracking app. Provide short, concise, and actionable nutrition advice.
+            system_prompt = """You are a nutrition assistant for NutriBalance, a food tracking app. Provide short, concise, and actionable nutrition advice tailored to the user's weight goal.
 
 Rules:
 - Keep answers brief (2-4 sentences max)
@@ -97,7 +134,11 @@ Rules:
 - Never use emojis
 - Use bullet points only when listing multiple items
 - Focus on practical advice
-- Be encouraging but professional"""
+- Be encouraging but professional
+- Personalize advice based on user's goal (weight loss, gain, maintenance, or diabetes management)
+- For weight loss: emphasize high protein, vegetables, and staying within calorie targets
+- For weight gain: emphasize calorie-dense foods, protein, and meeting calorie targets
+- For diabetes: emphasize low glycemic foods and carb monitoring"""
 
             if include_context and user_id:
                 user_context = await self.get_user_context(user_id)
