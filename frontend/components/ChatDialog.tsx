@@ -85,8 +85,8 @@ export default function ChatDialog({ isOpen, onClose }: ChatDialogProps) {
 
   const starterPrompts = [
     "What food groups am I missing today?",
-    "What should I eat for more protein?",
-    "Review my meals from today"
+    "What should I eat next?",
+    "Give me nutrition tips"
   ]
 
   const handlePromptClick = (prompt: string) => {

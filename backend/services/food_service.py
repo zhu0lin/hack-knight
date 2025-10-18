@@ -18,7 +18,7 @@ class FoodService:
     
     async def create_food_log(
         self,
-        user_id: str,
+        user_id: Optional[str],
         image_url: str,
         detected_food_name: str,
         food_category: str,
@@ -30,7 +30,7 @@ class FoodService:
         Create a new food log entry
         
         Args:
-            user_id: User's UUID
+            user_id: User's UUID (optional, None for anonymous users)
             image_url: URL to uploaded food image
             detected_food_name: Name detected by ML model
             food_category: Category (fruit, vegetable, etc)
@@ -54,8 +54,8 @@ class FoodService:
             }
             response = self._get_supabase().table("food_logs").insert(data).execute()
             
-            # Update daily summary after creating log
-            if response.data:
+            # Update daily summary after creating log (only for authenticated users)
+            if response.data and user_id:
                 await self.update_daily_summary(user_id, date.today())
             
             return response.data[0] if response.data else None
