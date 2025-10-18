@@ -34,8 +34,8 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  // Protected routes: /profile, /dashboard
-  const protectedRoutes = ['/profile', '/dashboard']
+  // Protected routes: /profile, /dashboard, /connections
+  const protectedRoutes = ['/profile', '/dashboard', '/connections']
   const isProtectedRoute = protectedRoutes.some(route => 
     req.nextUrl.pathname.startsWith(route)
   )

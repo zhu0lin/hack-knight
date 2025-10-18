@@ -6,14 +6,16 @@ import GroupPill from '@/components/GroupPill'
 import ProgressBar from '@/components/ProgressBar'
 import CardSub from '@/components/CardSub'
 import { PrimaryButton, GhostButton } from '@/components/Buttons'
+import ChatDialog from '@/components/ChatDialog'
 import { soft } from '@/lib/theme'
 import { supabase } from '@/lib/client'
 import { useRouter } from 'next/navigation'
-import { Upload, Camera } from 'lucide-react'
+import { Upload, Camera, MessageCircle } from 'lucide-react'
 
 export default function Page() {
   const [message, setMessage] = useState('Loading...')
   const [session, setSession] = useState<any>(null)
+  const [isChatOpen, setIsChatOpen] = useState(false)
   const [foodGroups, setFoodGroups] = useState<Record<string, boolean>>({
     Fruits: false,
     Vegetables: false,
@@ -86,6 +88,7 @@ export default function Page() {
         <div className="flex justify-end gap-2 mb-2">
           {session ? (
             <>
+              <GhostButton onClick={() => router.push('/connections')}>Connections</GhostButton>
               <GhostButton onClick={() => router.push('/profile')}>Profile</GhostButton>
               <GhostButton onClick={handleSignOut}>Log Out</GhostButton>
             </>
@@ -189,6 +192,20 @@ export default function Page() {
       <footer className="text-center text-[#5E7F73] mt-6">
         <small>© {new Date().getFullYear()} NutriBalance</small>
       </footer>
+
+      {/* Floating Chat Button */}
+      {session && (
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-6 right-6 bg-[#2BAA66] text-white p-4 rounded-full shadow-lg hover:bg-[#27A05F] hover:scale-110 transition-all z-30"
+          aria-label="Open chat"
+        >
+          <MessageCircle size={24} />
+        </button>
+      )}
+
+      {/* Chat Dialog */}
+      <ChatDialog isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </>
   )
 }
