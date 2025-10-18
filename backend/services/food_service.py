@@ -96,6 +96,37 @@ class FoodService:
             print(f"Error fetching food logs: {e}")
             return []
     
+    async def get_all_food_logs(
+        self,
+        limit: int = 100,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ) -> List[Dict]:
+        """
+        Get all food logs from all users with optional filters
+        
+        Args:
+            limit: Maximum number of logs to return
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+            
+        Returns:
+            List of food log entries from all users
+        """
+        try:
+            query = self._get_supabase().table("food_logs").select("*").order("logged_at", desc=True).limit(limit)
+            
+            if start_date:
+                query = query.gte("logged_at", start_date.isoformat())
+            if end_date:
+                query = query.lte("logged_at", end_date.isoformat())
+            
+            response = query.execute()
+            return response.data if response.data else []
+        except Exception as e:
+            print(f"Error fetching all food logs: {e}")
+            return []
+    
     async def update_daily_summary(self, user_id: str, summary_date: date) -> None:
         """
         Update or create daily nutrition summary for a user
