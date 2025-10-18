@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { Upload, Camera, MessageCircle } from 'lucide-react'
 
 export default function Page() {
+  const [meals, setMeals] = useState<FoodLog[]>([])
   const [message, setMessage] = useState('Loading...')
   const [session, setSession] = useState<any>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -29,6 +30,14 @@ export default function Page() {
   const uploadRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
+  type FoodLog = {
+  id: string
+  user_id: string
+  detected_food_name: string
+  food_category: string
+  healthiness_score: number
+}
+
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
     fetch(`${apiUrl}/`)
@@ -37,6 +46,24 @@ export default function Page() {
       .catch(() => setMessage('Error connecting to backend'))
   }, [])
 
+  useEffect(() => {
+  const getMeals = async () => {
+    const { data, error } = await supabase
+      .from('food_logs')
+      .select('*')
+
+      console.log(data)
+
+    if (error) {
+      console.error('Error fetching meals:', error)
+      return
+    }
+
+    setMeals(data)
+  }
+
+  getMeals()
+}, [])
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -129,6 +156,13 @@ export default function Page() {
             ))}
           </ul>
         </CardSub>
+      </Section>
+
+      <Section
+      title="recorded meals" subtitle="list of meals">
+        {meals.map(m => {
+          return <p>{m.detected_food_name}</p>
+        })}
       </Section>
 
       <Section
