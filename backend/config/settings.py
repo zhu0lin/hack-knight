@@ -23,8 +23,12 @@ class Settings(BaseSettings):
     APP_NAME: str = "Food App API"
     APP_VERSION: str = "1.0.0"
     
-    # CORS Settings
-    CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:3001"]
+    # CORS Settings - Allow all origins in production, or specify your domains
+    CORS_ORIGINS: list = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "*"  # Allow all origins - restrict this in production to your specific domains
+    ]
     
     class Config:
         env_file = ".env"
