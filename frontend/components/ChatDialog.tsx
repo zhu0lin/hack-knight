@@ -44,20 +44,16 @@ export default function ChatDialog({ isOpen, onClose }: ChatDialogProps) {
     setLoading(true)
 
     try {
-      // Get user
+      // Get user (optional - for personalized responses)
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setMessages(prev => [...prev, { role: 'bot', content: 'Please log in to use the chat.' }])
-        setLoading(false)
-        return
-      }
+      const userId = user?.id || null
 
       // Call API
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/api/chat`, {
+      const response = await fetch(`${apiUrl}/api/chatbot/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, message: userMessage })
+        body: JSON.stringify({ message: userMessage, user_id: userId, include_context: userId ? true : false })
       })
 
       if (!response.ok) {

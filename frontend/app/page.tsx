@@ -15,7 +15,6 @@ import { Upload, Camera, MessageCircle } from 'lucide-react'
 export default function Page() {
   const [meals, setMeals] = useState<FoodLog[]>([])
   const [message, setMessage] = useState('Loading...')
-  const [session, setSession] = useState<any>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [foodGroups, setFoodGroups] = useState<Record<string, boolean>>({
     Fruits: false,
@@ -64,19 +63,6 @@ export default function Page() {
 
   getMeals()
 }, [])
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [])
 
   const completed = useMemo(
     () => Object.values(foodGroups).filter(Boolean).length,
@@ -99,10 +85,6 @@ export default function Page() {
     })
   }
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-  }
-
   const recs = [
     'Add some fruit for vitamins and fiber',
     'Include vegetables for essential nutrients',
@@ -113,15 +95,8 @@ export default function Page() {
     <>
       <header className="text-center space-y-2">
         <div className="flex justify-end gap-2 mb-2">
-          {session ? (
-            <>
-              <GhostButton onClick={() => router.push('/connections')}>Friends</GhostButton>
-              <GhostButton onClick={() => router.push('/profile')}>Profile</GhostButton>
-              <GhostButton onClick={handleSignOut}>Log Out</GhostButton>
-            </>
-          ) : (
-            <PrimaryButton onClick={() => router.push('/login')}>Sign In</PrimaryButton>
-          )}
+          <GhostButton onClick={() => router.push('/connections')}>Friends</GhostButton>
+          <GhostButton onClick={() => router.push('/profile')}>Profile</GhostButton>
         </div>
         <h1 className="text-4xl font-bold text-[#0B3B29]">NutriBalance</h1>
         <p className="text-[#5E7F73] text-lg">
@@ -228,15 +203,13 @@ export default function Page() {
       </footer>
 
       {/* Floating Chat Button */}
-      {session && (
-        <button
-          onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 bg-[#2BAA66] text-white p-4 rounded-full shadow-lg hover:bg-[#27A05F] hover:scale-110 transition-all z-30"
-          aria-label="Open chat"
-        >
-          <MessageCircle size={24} />
-        </button>
-      )}
+      <button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-6 right-6 bg-[#2BAA66] text-white p-4 rounded-full shadow-lg hover:bg-[#27A05F] hover:scale-110 transition-all z-30"
+        aria-label="Open chat"
+      >
+        <MessageCircle size={24} />
+      </button>
 
       {/* Chat Dialog */}
       <ChatDialog isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />

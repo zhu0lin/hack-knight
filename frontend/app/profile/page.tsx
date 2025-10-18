@@ -41,7 +41,8 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
-        router.push('/login')
+        // No user logged in - this is fine now, just use mock data or empty state
+        setLoading(false)
         return
       }
 
@@ -123,7 +124,7 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
-        setMessage('Not authenticated')
+        setMessage('No user session - profile not saved')
         setSaving(false)
         return
       }

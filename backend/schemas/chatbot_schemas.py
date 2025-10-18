@@ -5,13 +5,14 @@ from typing import Optional
 class ChatRequest(BaseModel):
     """Schema for chatbot message request"""
     message: str
+    user_id: Optional[str] = None
     include_context: bool = True
 
 
 class ChatResponse(BaseModel):
     """Schema for chatbot response"""
     response: str
-    user_id: str
+    user_id: Optional[str] = None
 
 
 class QuickActionRequest(BaseModel):

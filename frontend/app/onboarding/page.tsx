@@ -30,7 +30,7 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
-        setMessage('Not authenticated. Please log in.')
+        setMessage('No user session - onboarding not saved')
         setLoading(false)
         return
       }

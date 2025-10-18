@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/client'
 import { useRouter } from 'next/navigation'
 
@@ -11,43 +11,26 @@ export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [message, setMessage] = useState('')
 
-  // ✅ Listen for login/signup events and redirect after session is ready
-  useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        // Check if user has an active goal
-        const { data: userGoal } = await supabase
-          .from('user_goals')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .eq('is_active', true)
-          .single()
-        
-        if (!userGoal) {
-          router.push('/onboarding') // new user without goal
-        } else {
-          router.push('/') // returning user with goal
-        }
-      }
-    })
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [router])
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setMessage('')
 
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setMessage(error.message)
-      // ✅ No manual redirect here — handled by onAuthStateChange
+      if (error) {
+        setMessage(error.message)
+      } else {
+        setMessage('Login successful!')
+        // Optionally redirect to home after login
+        setTimeout(() => router.push('/'), 1000)
+      }
     } else {
       const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setMessage(error.message)
-      else setMessage('Check your email for confirmation link!')
+      if (error) {
+        setMessage(error.message)
+      } else {
+        setMessage('Check your email for confirmation link!')
+      }
     }
   }
 
