@@ -19,12 +19,12 @@ class StorageService:
             self.supabase = get_supabase()
         return self.supabase
     
-    async def upload_food_image(self, user_id: str, image_data: bytes, file_extension: str = "jpg") -> str:
+    async def upload_food_image(self, user_id: Optional[str], image_data: bytes, file_extension: str = "jpg") -> str:
         """
         Upload food image to Supabase Storage
         
         Args:
-            user_id: User's UUID
+            user_id: User's UUID (optional, None for anonymous users)
             image_data: Image file bytes
             file_extension: File extension (jpg, png, etc)
             
@@ -35,7 +35,9 @@ class StorageService:
             # Generate unique filename
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             unique_id = str(uuid.uuid4())[:8]
-            filename = f"{user_id}/{timestamp}_{unique_id}.{file_extension}"
+            # Use 'anonymous' folder for users without authentication
+            folder = user_id if user_id else "anonymous"
+            filename = f"{folder}/{timestamp}_{unique_id}.{file_extension}"
             
             # Upload to Supabase Storage
             supabase = self._get_supabase()

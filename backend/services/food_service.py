@@ -18,7 +18,7 @@ class FoodService:
     
     async def create_food_log(
         self,
-        user_id: str,
+        user_id: Optional[str],
         image_url: str,
         detected_food_name: str,
         food_category: str,
@@ -30,7 +30,7 @@ class FoodService:
         Create a new food log entry
         
         Args:
-            user_id: User's UUID
+            user_id: User's UUID (optional, None for anonymous users)
             image_url: URL to uploaded food image
             detected_food_name: Name detected by ML model
             food_category: Category (fruit, vegetable, etc)
@@ -54,8 +54,8 @@ class FoodService:
             }
             response = self._get_supabase().table("food_logs").insert(data).execute()
             
-            # Update daily summary after creating log
-            if response.data:
+            # Update daily summary after creating log (only for authenticated users)
+            if response.data and user_id:
                 await self.update_daily_summary(user_id, date.today())
             
             return response.data[0] if response.data else None
@@ -94,6 +94,37 @@ class FoodService:
             return response.data if response.data else []
         except Exception as e:
             print(f"Error fetching food logs: {e}")
+            return []
+    
+    async def get_all_food_logs(
+        self,
+        limit: int = 100,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ) -> List[Dict]:
+        """
+        Get all food logs from all users with optional filters
+        
+        Args:
+            limit: Maximum number of logs to return
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+            
+        Returns:
+            List of food log entries from all users
+        """
+        try:
+            query = self._get_supabase().table("food_logs").select("*").order("logged_at", desc=True).limit(limit)
+            
+            if start_date:
+                query = query.gte("logged_at", start_date.isoformat())
+            if end_date:
+                query = query.lte("logged_at", end_date.isoformat())
+            
+            response = query.execute()
+            return response.data if response.data else []
+        except Exception as e:
+            print(f"Error fetching all food logs: {e}")
             return []
     
     async def update_daily_summary(self, user_id: str, summary_date: date) -> None:
