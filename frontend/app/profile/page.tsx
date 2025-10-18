@@ -28,6 +28,9 @@ export default function ProfilePage() {
   const [targetWeight, setTargetWeight] = useState('')
   const [height, setHeight] = useState('')
   const [age, setAge] = useState('')
+  const [streak, setStreak] = useState<number | null>(null)
+  const [lastCompletedDate, setLastCompletedDate] = useState<string | null>(null)
+  const [streakError, setStreakError] = useState('')
 
   useEffect(() => {
     loadProfile()
@@ -81,6 +84,26 @@ export default function ProfilePage() {
         if (frontendGoal) {
           setGoal(frontendGoal.value as GoalType)
         }
+      }
+
+      // Fetch streak data from backend
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+        const response = await fetch(`${apiUrl}/api/users/${user.id}/streak`)
+
+        if (!response.ok) {
+          throw new Error('Failed to load streak')
+        }
+
+        const data = await response.json()
+        setStreak(typeof data.current_streak === 'number' ? data.current_streak : 0)
+        setLastCompletedDate(data.last_completed_date || null)
+        setStreakError('')
+      } catch (error) {
+        console.error('Streak fetch error:', error)
+        setStreak(0)
+        setLastCompletedDate(null)
+        setStreakError('Unable to load streak right now')
       }
 
       setLoading(false)
@@ -164,13 +187,37 @@ export default function ProfilePage() {
           <GhostButton onClick={() => router.push('/')}>← Back to Home</GhostButton>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="border border-[#D9F1E3] rounded-xl p-4 bg-[#F8FFFB]">
+            <p className="text-sm text-[#5E7F73]">Current Streak</p>
+            <p className="text-3xl font-semibold text-[#0B3B29] mt-1">
+              {streak !== null ? `${streak} day${streak === 1 ? '' : 's'}` : '—'}
+            </p>
+            {lastCompletedDate && (
+              <p className="text-xs text-[#5E7F73] mt-1">
+                Last completion: {new Date(lastCompletedDate).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+
+          <div className="border border-[#D9F1E3] rounded-xl p-4 bg-white">
+            <p className="text-sm text-[#5E7F73]">Keep it going!</p>
+            <p className="text-sm text-[#0B3B29] mt-1">
+              Log every food group each day to build your streak.
+            </p>
+            {streakError && (
+              <p className="text-xs text-red-500 mt-2">{streakError}</p>
+            )}
+          </div>
+        </div>
+
         <form onSubmit={handleSave} className="space-y-6">
           {/* Basic Info */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-[#0B3B29]">Basic Information</h2>
             
             <div>
-              <label className="block text-sm text-[#5E7F73] mb-1">Email (read-only)</label>
+              <label className="block text-sm text-[#5E7F73] mb-1">Email</label>
               <input
                 type="email"
                 value={email}
@@ -278,4 +325,3 @@ export default function ProfilePage() {
     </main>
   )
 }
-

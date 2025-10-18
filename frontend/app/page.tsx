@@ -88,7 +88,7 @@ export default function Page() {
         <div className="flex justify-end gap-2 mb-2">
           {session ? (
             <>
-              <GhostButton onClick={() => router.push('/connections')}>Connections</GhostButton>
+              <GhostButton onClick={() => router.push('/connections')}>Friends</GhostButton>
               <GhostButton onClick={() => router.push('/profile')}>Profile</GhostButton>
               <GhostButton onClick={handleSignOut}>Log Out</GhostButton>
             </>
@@ -149,9 +149,9 @@ export default function Page() {
                 <h3 className="text-2xl font-bold text-[#0B3B29] group-hover:text-[#2BAA66] transition-colors">
                   Upload Image
                 </h3>
-                <p className="text-[#5E7F73]">
+                {/*<p className="text-[#5E7F73]">
                   Click anywhere in this box to upload a photo of your meal
-                </p>
+                </p>*/}
               </div>
             </div>
           </button>
