@@ -10,8 +10,14 @@ class StorageService:
     """Service for handling image uploads to Supabase Storage"""
     
     def __init__(self):
-        self.supabase = get_supabase()
+        self.supabase = None
         self.bucket_name = settings.STORAGE_BUCKET_NAME
+    
+    def _get_supabase(self):
+        """Lazy load Supabase client"""
+        if self.supabase is None:
+            self.supabase = get_supabase()
+        return self.supabase
     
     async def upload_food_image(self, user_id: str, image_data: bytes, file_extension: str = "jpg") -> str:
         """
@@ -32,14 +38,15 @@ class StorageService:
             filename = f"{user_id}/{timestamp}_{unique_id}.{file_extension}"
             
             # Upload to Supabase Storage
-            response = self.supabase.storage.from_(self.bucket_name).upload(
+            supabase = self._get_supabase()
+            response = supabase.storage.from_(self.bucket_name).upload(
                 path=filename,
                 file=image_data,
                 file_options={"content-type": f"image/{file_extension}"}
             )
             
             # Get public URL
-            public_url = self.supabase.storage.from_(self.bucket_name).get_public_url(filename)
+            public_url = supabase.storage.from_(self.bucket_name).get_public_url(filename)
             
             return public_url
         except Exception as e:
@@ -61,7 +68,7 @@ class StorageService:
             # URL format: https://.../storage/v1/object/public/bucket-name/path/to/file.jpg
             filename = image_url.split(f"{self.bucket_name}/")[-1]
             
-            self.supabase.storage.from_(self.bucket_name).remove([filename])
+            self._get_supabase().storage.from_(self.bucket_name).remove([filename])
             return True
         except Exception as e:
             print(f"Error deleting image: {e}")
@@ -79,7 +86,7 @@ class StorageService:
             Signed URL or None if error
         """
         try:
-            response = self.supabase.storage.from_(self.bucket_name).create_signed_url(
+            response = self._get_supabase().storage.from_(self.bucket_name).create_signed_url(
                 path=image_path,
                 expires_in=expires_in
             )

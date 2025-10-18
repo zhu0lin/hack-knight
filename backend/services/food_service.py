@@ -8,7 +8,13 @@ class FoodService:
     """Service for food logging business logic"""
     
     def __init__(self):
-        self.supabase = get_supabase()
+        self.supabase = None
+    
+    def _get_supabase(self):
+        """Lazy load Supabase client"""
+        if self.supabase is None:
+            self.supabase = get_supabase()
+        return self.supabase
     
     async def create_food_log(
         self,
@@ -46,7 +52,7 @@ class FoodService:
                 "meal_type": meal_type,
                 "logged_at": datetime.utcnow().isoformat(),
             }
-            response = self.supabase.table("food_logs").insert(data).execute()
+            response = self._get_supabase().table("food_logs").insert(data).execute()
             
             # Update daily summary after creating log
             if response.data:
@@ -77,7 +83,7 @@ class FoodService:
             List of food log entries
         """
         try:
-            query = self.supabase.table("food_logs").select("*").eq("user_id", user_id).order("logged_at", desc=True).limit(limit)
+            query = self._get_supabase().table("food_logs").select("*").eq("user_id", user_id).order("logged_at", desc=True).limit(limit)
             
             if start_date:
                 query = query.gte("logged_at", start_date.isoformat())
@@ -149,7 +155,7 @@ class FoodService:
                 "completion_percentage": completion,
             }
             
-            self.supabase.table("daily_nutrition_summary").upsert(data).execute()
+            self._get_supabase().table("daily_nutrition_summary").upsert(data).execute()
         except Exception as e:
             print(f"Error updating daily summary: {e}")
 

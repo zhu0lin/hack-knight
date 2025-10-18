@@ -8,7 +8,13 @@ class AuthService:
     """Authentication service for handling Supabase auth operations"""
     
     def __init__(self):
-        self.supabase = get_supabase()
+        self.supabase = None
+    
+    def _get_supabase(self):
+        """Lazy load Supabase client"""
+        if self.supabase is None:
+            self.supabase = get_supabase()
+        return self.supabase
     
     async def verify_token(self, token: str) -> Optional[Dict]:
         """
@@ -42,7 +48,7 @@ class AuthService:
             User data dict if found
         """
         try:
-            response = self.supabase.table("users").select("*").eq("id", user_id).execute()
+            response = self._get_supabase().table("users").select("*").eq("id", user_id).execute()
             if response.data:
                 return response.data[0]
             return None
@@ -67,7 +73,7 @@ class AuthService:
                 "id": user_id,
                 "full_name": full_name,
             }
-            response = self.supabase.table("users").insert(data).execute()
+            response = self._get_supabase().table("users").insert(data).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             print(f"Error creating user profile: {e}")
