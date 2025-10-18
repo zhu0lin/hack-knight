@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # ML Service Configuration (optional)
     ML_SERVICE_URL: Optional[str] = None
     
+    # Gemini AI Configuration
+    GEMINI_API_KEY: str
+    GEMINI_MODEL: str = "gemini-pro"
+    
     # Application Configuration
     ENVIRONMENT: str = "development"
     APP_NAME: str = "Food App API"

@@ -7,7 +7,13 @@ class NutritionService:
     """Service for nutrition calculations and streak management"""
     
     def __init__(self):
-        self.supabase = get_supabase()
+        self.supabase = None
+    
+    def _get_supabase(self):
+        """Lazy load Supabase client"""
+        if self.supabase is None:
+            self.supabase = get_supabase()
+        return self.supabase
     
     async def get_missing_food_groups(self, user_id: str, target_date: date = None) -> List[str]:
         """
@@ -24,7 +30,7 @@ class NutritionService:
             target_date = date.today()
         
         try:
-            response = self.supabase.table("daily_nutrition_summary").select("*").eq("user_id", user_id).eq("date", target_date.isoformat()).execute()
+            response = self._get_supabase().table("daily_nutrition_summary").select("*").eq("user_id", user_id).eq("date", target_date.isoformat()).execute()
             
             if not response.data:
                 return ["fruits", "vegetables", "protein", "dairy", "grains"]
@@ -60,7 +66,7 @@ class NutritionService:
         """
         try:
             # Get all daily summaries ordered by date
-            response = self.supabase.table("daily_nutrition_summary").select("*").eq("user_id", user_id).order("date", desc=True).execute()
+            response = self._get_supabase().table("daily_nutrition_summary").select("*").eq("user_id", user_id).order("date", desc=True).execute()
             
             if not response.data:
                 return {"current_streak": 0, "longest_streak": 0}
@@ -111,7 +117,7 @@ class NutritionService:
                 "last_logged_date": date.today().isoformat(),
             }
             
-            self.supabase.table("user_streaks").upsert(streak_data).execute()
+            self._get_supabase().table("user_streaks").upsert(streak_data).execute()
             
             return {
                 "current_streak": current_streak,
@@ -133,7 +139,7 @@ class NutritionService:
         """
         try:
             # Get user's active goal
-            goal_response = self.supabase.table("user_goals").select("*").eq("user_id", user_id).eq("is_active", True).execute()
+            goal_response = self._get_supabase().table("user_goals").select("*").eq("user_id", user_id).eq("is_active", True).execute()
             
             if not goal_response.data:
                 return self._get_default_recommendations()

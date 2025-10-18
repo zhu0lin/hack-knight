@@ -1,10 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from config.settings import settings
 
 # Import all route modules
-from routes import auth, users, food, goals, analytics, social
+from routes import auth, users, food, goals, analytics, social, chatbot, dev
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -30,6 +30,8 @@ app.include_router(food.router)
 app.include_router(goals.router)
 app.include_router(analytics.router)
 app.include_router(social.router)
+app.include_router(chatbot.router)
+app.include_router(dev.router)  # Development/testing endpoints
 
 @app.get("/")
 async def root():
@@ -57,4 +59,3 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
