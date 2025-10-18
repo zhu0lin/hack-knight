@@ -13,7 +13,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#F1FBF6] text-[#0B3B29] font-sans min-h-screen flex justify-center px-4 py-12">
-        <main className="w-full max-w-[900px] flex flex-col gap-10">
+        <main className="w-full max-w-[1350px] flex flex-col gap-10">
           {children}
         </main>
       </body>
