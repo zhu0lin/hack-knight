@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    image: foodmix-ml
+    container_name: hack-knight-ml
+    ports:
+      - "8001:8001"
+    networks:
+      - hack-knight-network
+    volumes:
+      - ./ml-service/artifacts:/app/artifacts:ro
+
   backend:
     build:
       context: ./backend
@@ -10,8 +24,11 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=development
+      - ML_SERVICE_URL=http://ml-service:8001
     volumes:
       - ./backend:/app
+    depends_on:
+      - ml-service
     restart: unless-stopped
     networks:
       - hack-knight-network

@@ -17,6 +17,10 @@ export default function Page() {
   const [message, setMessage] = useState('Loading...')
   const [session, setSession] = useState<any>(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [mlResult, setMlResult] = useState<any | null>(null)
   const [foodGroups, setFoodGroups] = useState<Record<string, boolean>>({
     Fruits: false,
     Vegetables: false,
@@ -88,15 +92,45 @@ export default function Page() {
 
   const handleFiles = (files: FileList | null) => {
     if (!files?.length) return
-    setFoodGroups(prev => {
-      const next = { ...prev }
-      const keys = Object.keys(next)
-      for (let i = 0; i < Math.min(2, keys.length); i++) {
-        const k = keys[(Math.random() * keys.length) | 0]
-        next[k] = true
+    const file = files[0]
+    setError(null)
+    setMlResult(null)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(URL.createObjectURL(file))
+    analyzeImage(file)
+  }
+
+  const analyzeImage = async (file: File) => {
+    try {
+      setIsAnalyzing(true)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(`${apiUrl}/api/predict`, {
+        method: 'POST',
+        body: fd,
+      })
+      if (!res.ok) throw new Error(`Backend error: ${res.status}`)
+      const data = await res.json()
+      setMlResult(data)
+
+      // Map ML pyramid flags to UI food groups
+      const flags = (data?.result?.pyramid || []) as { name: string; yes_no: string }[]
+      const yes = (n: string) => flags.find(f => f.name === n)?.yes_no === 'Yes'
+      const next: Record<string, boolean> = {
+        Fruits: yes('fruits_veg'),
+        Vegetables: yes('fruits_veg'),
+        Grains: yes('carbs'),
+        Protein: yes('protein'),
+        Dairy: yes('dairy'),
+        'Healthy Fats': yes('fats'),
       }
-      return next
-    })
+      setFoodGroups(next)
+    } catch (e: any) {
+      setError(e?.message || 'Prediction failed')
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const handleSignOut = async () => {
@@ -170,6 +204,14 @@ export default function Page() {
         subtitle="Take a photo or upload an image of your food"
       >
         <div className="space-y-4">
+          {previewUrl && (
+            <div className="w-full flex justify-center">
+              <img src={previewUrl} alt="preview" className="max-h-64 rounded-xl border" />
+            </div>
+          )}
+          {error && (
+            <p className="text-red-600 text-sm">{error}</p>
+          )}
           {/* Upload Box - Clickable */}
           <button
             onClick={() => uploadRef.current?.click()}
@@ -216,6 +258,37 @@ export default function Page() {
           onChange={e => handleFiles(e.target.files)}
         />
       </Section>
+
+      {isAnalyzing && (
+        <Section title="Analyzing" subtitle="Running ML analysis...">
+          <p className="text-[#5E7F73]">Please wait...</p>
+        </Section>
+      )}
+
+      {mlResult && (
+        <Section title="Analysis Result" subtitle="Predicted classes and food pyramid">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-xl border">
+              <h3 className="font-semibold text-[#0B3B29] mb-2">Top Classes</h3>
+              <ul className="list-disc pl-5 text-[#5E7F73]">
+                {(mlResult.result?.top_classes || []).map((c: any) => (
+                  <li key={c.label}>{c.label} — {(c.prob * 100).toFixed(1)}%</li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-white p-4 rounded-xl border">
+              <h3 className="font-semibold text-[#0B3B29] mb-2">Food Pyramid</h3>
+              <ul className="list-disc pl-5 text-[#5E7F73]">
+                {(mlResult.result?.pyramid || []).map((p: any) => (
+                  <li key={p.name}>
+                    {p.name}: {p.yes_no} {(p.prob * 100).toFixed(1)}%
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* <Section title="Debug" subtitle="Backend Connection">
         <p className="text-sm text-[#5E7F73]">

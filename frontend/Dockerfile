@@ -9,7 +9,8 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
-RUN npm ci
+# Use npm install to avoid lockfile mismatch failures when deps change
+RUN npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -17,8 +18,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set environment variable for API URL
-ENV NEXT_PUBLIC_API_URL=http://backend:8000
+# Ensure a public directory exists to satisfy COPY in runner stage
+RUN mkdir -p public
+
+# Set API URL at build-time for client bundles (browser context sees localhost)
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Build Next.js app
 RUN npm run build

@@ -2,6 +2,7 @@
 import torch, torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
+import io
 import numpy as np
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -9,6 +10,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 class ResNet50TwoHead(nn.Module):
     def __init__(self, num_classes: int):
         super().__init__()
+        # Use ImageNet weights as in the earlier working version
         m = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
         self.backbone = nn.Sequential(*list(m.children())[:-1])
         self.class_head = nn.Linear(2048, num_classes)
