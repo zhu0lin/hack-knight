@@ -20,20 +20,31 @@ class ResNet50TwoHead(nn.Module):
         f = self.backbone(x).flatten(1)
         return self.class_head(f), self.pyr_head(f)
 
-def tune_thresholds(y_true, y_prob):
-    y_true, y_prob = np.asarray(y_true), np.asarray(y_prob)
+def tune_thresholds(y_true, y_prob, y_true_floor=0.5):
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+
+    # binarize soft labels for F1 calculation only
+    y_true_bin = (y_true >= y_true_floor).astype(int)
+
     best = [0.5]*5
     for k in range(5):
         ts = np.linspace(0.1, 0.9, 17)
-        scores = [(t, f1_score(y_true[:,k], (y_prob[:,k]>=t).astype(int), zero_division=0)) for t in ts]
-        best[k] = max(scores, key=lambda x:x[1])[0]
+        scores = [
+            (t, f1_score(y_true_bin[:, k],
+                         (y_prob[:, k] >= t).astype(int),
+                         zero_division=0))
+            for t in ts
+        ]
+        best[k] = max(scores, key=lambda x: x[1])[0]
     return best
+
 
 def main():
     train_ld, val_ld, classes = build_loaders(
-        fruit_root="datasets/fruits-360_100x100",   # expects Training/ and Test/
+        fruit_root= "", #"datasets/fruits-360_100x100",   # expects Training/ and Test/
         food11_root="datasets/food-11",
-        batch_size=BATCH, max_train=500, max_val=200
+        batch_size=BATCH, max_train=1000, max_val=200, num_workers = 0
     )
     model = ResNet50TwoHead(num_classes=len(classes)).to(DEVICE)
     ce, bce = nn.CrossEntropyLoss(), nn.BCEWithLogitsLoss()
@@ -65,7 +76,7 @@ def main():
     print(f"val class acc: {acc:.3f} | thresholds: {th}")
 
     out_dir = Path("artifacts"); out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir/"foodmix_resnet50.pt"
+    out_path = out_dir/"resnet50_food11.pt"
     torch.save({"state_dict": model.state_dict(),
                 "classes": classes,
                 "thresholds": th}, str(out_path))

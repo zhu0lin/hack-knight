@@ -99,6 +99,9 @@ def build_datasets(
     tfm_train, tfm_val = build_transforms()
 
     def _resolve_base_dir(user_root: str, candidates: List[str]) -> Optional[Path]:
+        if not user_root:
+            return None
+
         ur = Path(user_root)
         if ur.exists():
             return ur
@@ -107,6 +110,7 @@ def build_datasets(
             if p.exists():
                 return p
         return None
+
 
     # Fruit-360
     fruit_base = _resolve_base_dir(
