@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Remove 'output: standalone' for Cloudflare Pages compatibility
-  // Cloudflare Pages handles the build output automatically
+  output: 'export',  // Static export for Cloudflare Pages
+  images: {
+    unoptimized: true,  // Required for static export
+  },
 }
 
 module.exports = nextConfig
