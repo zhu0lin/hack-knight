@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = FastAPI(
     title="Hack Knight API",
     description="Backend API for Hack Knight application",
@@ -17,6 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from voice_routes import router as voice_router
+app.include_router(voice_router)
 
 @app.get("/")
 async def root():
