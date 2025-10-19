@@ -16,8 +16,10 @@ export default function Page() {
   const [meals, setMeals] = useState<FoodLog[]>([])
   const [message, setMessage] = useState('Loading...')
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [mlResult, setMlResult] = useState<any | null>(null)
   const [foodGroups, setFoodGroups] = useState<Record<string, boolean>>({
     Fruits: false,
     Vegetables: false,
@@ -52,9 +54,23 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    getMeals()
-    updateFoodGroupsFromMeals()
-  }, [])
+  const getMeals = async () => {
+    const { data, error } = await supabase
+      .from('food_logs')
+      .select('*')
+
+      console.log(data)
+
+    if (error) {
+      console.error('Error fetching meals:', error)
+      return
+    }
+
+    setMeals(data)
+  }
+
+  getMeals()
+}, [])
 
   const completed = useMemo(
     () => Object.values(foodGroups).filter(Boolean).length,
@@ -64,155 +80,175 @@ export default function Page() {
     (completed / Object.keys(foodGroups).length) * 100
   )
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = (files: FileList | null) => {
     if (!files?.length) return
-    
     const file = files[0]
-    setUploading(true)
-    setUploadError('')
+    setError(null)
+    setMlResult(null)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(URL.createObjectURL(file))
+    analyzeImage(file)
+  }
 
+  const analyzeImage = async (file: File) => {
     try {
-      // Get current user (optional)
-      const { data: { user } } = await supabase.auth.getUser()
-      const userId = user?.id || null
-
-      // Create FormData
-      const formData = new FormData()
-      formData.append('image', file)
-      if (userId) {
-        formData.append('user_id', userId)
-      }
-
-      // Upload to backend
+      setIsAnalyzing(true)
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/api/food/upload`, {
+      const fd = new FormData()
+      // Backend expects field name 'image' at /api/food/upload
+      fd.append('image', file)
+      const res = await fetch(`${apiUrl}/api/food/upload`, {
         method: 'POST',
-        body: formData,
+        body: fd,
       })
+      if (!res.ok) throw new Error(`Backend error: ${res.status}`)
+      const data = await res.json()
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || 'Failed to upload image')
-      }
-
-      const data = await response.json()
-      console.log('✅ Upload successful:', data)
-      console.log('📝 New meal ID:', data.log_id)
-      console.log('🍎 Detected food:', data.detected_food_name, '| Category:', data.food_category)
-
-      // Small delay to ensure DB commit
-      console.log('⏳ Waiting for database to commit...')
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Refresh meals list
-      console.log('🔄 Refreshing meals...')
-      console.log('📊 Current meals count before refresh:', meals.length)
-      await getMeals()
-
-      // Update food groups based on all meals from today
-      console.log('🔄 Updating food groups...')
-      await updateFoodGroupsFromMeals()
-
-      console.log('✨ All updates complete!')
-      console.log('📊 Current meals count after refresh:', meals.length)
-      setUploadError('')
-    } catch (error) {
-      console.error('Upload error:', error)
-      setUploadError(error instanceof Error ? error.message : 'Failed to upload image. Please try again.')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const updateFoodGroupsFromMeals = async () => {
-    try {
-      // Get today's date range
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const todayStart = today.toISOString()
-      
-      // Fetch ALL meals from today (no user filter - get everyone's meals)
-      const { data, error } = await supabase
-        .from('food_logs')
-        .select('*')
-        .gte('logged_at', todayStart)
-        .order('logged_at', { ascending: false })
-      
-      if (error) {
-        console.error('Error fetching meals for food groups:', error)
-        return
-      }
-
-      // Count categories from today's meals
-      const categoryCounts: Record<string, number> = {
-        'fruit': 0,
-        'vegetable': 0,
-        'grain': 0,
-        'protein': 0,
-        'dairy': 0,
-      }
-
-      data?.forEach(meal => {
-        const category = meal.food_category?.toLowerCase()
-        if (category && categoryCounts.hasOwnProperty(category)) {
-          categoryCounts[category]++
+      // Normalize backend response (FoodUploadResponse) to the UI shape used below
+      // FoodUploadResponse includes: detected_food_name, food_category, healthiness_score, confidence
+      const category = (data?.food_category || '').toLowerCase()
+      const yesFromCategory = (name: string) => {
+        switch (name) {
+          case 'fruits_veg':
+            return category === 'fruit' || category === 'vegetable'
+          case 'carbs':
+            return category === 'grain'
+          case 'protein':
+            return category === 'protein'
+          case 'dairy':
+            return category === 'dairy'
+          case 'fats':
+            return false
+          default:
+            return false
         }
-      })
+      }
 
-      // Update food groups state
-      setFoodGroups({
-        'Fruits': categoryCounts['fruit'] > 0,
-        'Vegetables': categoryCounts['vegetable'] > 0,
-        'Grains': categoryCounts['grain'] > 0,
-        'Protein': categoryCounts['protein'] > 0,
-        'Dairy': categoryCounts['dairy'] > 0,
-        'Healthy Fats': false, // Not tracked yet
-      })
-    } catch (error) {
-      console.error('Error updating food groups:', error)
+      const normalized = {
+        result: {
+          top_classes: [
+            { label: data?.detected_food_name || 'Unknown', prob: 1.0 },
+          ],
+          pyramid: [
+            { name: 'fats', yes_no: yesFromCategory('fats') ? 'Yes' : 'No', prob: 0 },
+            { name: 'protein', yes_no: yesFromCategory('protein') ? 'Yes' : 'No', prob: 0 },
+            { name: 'dairy', yes_no: yesFromCategory('dairy') ? 'Yes' : 'No', prob: 0 },
+            { name: 'fruits_veg', yes_no: yesFromCategory('fruits_veg') ? 'Yes' : 'No', prob: 0 },
+            { name: 'carbs', yes_no: yesFromCategory('carbs') ? 'Yes' : 'No', prob: 0 },
+          ],
+        },
+      }
+
+      setMlResult(normalized)
+
+      // Map ML pyramid flags to UI food groups
+      const flags = normalized.result.pyramid as { name: string; yes_no: string }[]
+      const yes = (n: string) => flags.find(f => f.name === n)?.yes_no === 'Yes'
+      const next: Record<string, boolean> = {
+        Fruits: yes('fruits_veg'),
+        Vegetables: yes('fruits_veg'),
+        Grains: yes('carbs'),
+        Protein: yes('protein'),
+        Dairy: yes('dairy'),
+        'Healthy Fats': yes('fats'),
+      }
+      setFoodGroups(next)
+    } catch (e: any) {
+      setError(e?.message || 'Prediction failed')
+    } finally {
+      setIsAnalyzing(false)
     }
   }
 
-  const getMeals = async () => {
-    console.log('📥 Fetching meals from database...')
+  // const updateFoodGroupsFromMeals = async () => {
+  //   try {
+  //     // Get today's date range
+  //     const today = new Date()
+  //     today.setHours(0, 0, 0, 0)
+  //     const todayStart = today.toISOString()
+      
+  //     // Fetch ALL meals from today (no user filter - get everyone's meals)
+  //     const { data, error } = await supabase
+  //       .from('food_logs')
+  //       .select('*')
+  //       .gte('logged_at', todayStart)
+  //       .order('logged_at', { ascending: false })
+      
+  //     if (error) {
+  //       console.error('Error fetching meals for food groups:', error)
+  //       return
+  //     }
+
+  //     // Count categories from today's meals
+  //     const categoryCounts: Record<string, number> = {
+  //       'fruit': 0,
+  //       'vegetable': 0,
+  //       'grain': 0,
+  //       'protein': 0,
+  //       'dairy': 0,
+  //     }
+
+  //     data?.forEach(meal => {
+  //       const category = meal.food_category?.toLowerCase()
+  //       if (category && categoryCounts.hasOwnProperty(category)) {
+  //         categoryCounts[category]++
+  //       }
+  //     })
+
+  //     // Update food groups state
+  //     setFoodGroups({
+  //       'Fruits': categoryCounts['fruit'] > 0,
+  //       'Vegetables': categoryCounts['vegetable'] > 0,
+  //       'Grains': categoryCounts['grain'] > 0,
+  //       'Protein': categoryCounts['protein'] > 0,
+  //       'Dairy': categoryCounts['dairy'] > 0,
+  //       'Healthy Fats': false, // Not tracked yet
+  //     })
+  //   } catch (error) {
+  //     console.error('Error updating food groups:', error)
+  //   }
+  // }
+
+  // const getMeals = async () => {
+  //   console.log('📥 Fetching meals from database...')
     
-    try {
-      // Force a fresh query by adding a timestamp to prevent caching
-      const timestamp = Date.now()
-      console.log('🕐 Query timestamp:', timestamp)
+  //   try {
+  //     // Force a fresh query by adding a timestamp to prevent caching
+  //     const timestamp = Date.now()
+  //     console.log('🕐 Query timestamp:', timestamp)
       
-      // Try to fetch with detailed logging
-      const { data, error, count } = await supabase
-        .from('food_logs')
-        .select('*', { count: 'exact', head: false })
-        .order('logged_at', { ascending: false })
-        .limit(20)
+  //     // Try to fetch with detailed logging
+  //     const { data, error, count } = await supabase
+  //       .from('food_logs')
+  //       .select('*', { count: 'exact', head: false })
+  //       .order('logged_at', { ascending: false })
+  //       .limit(20)
 
-      if (error) {
-        console.error('❌ Error fetching meals:', error)
-        console.error('❌ Error details:', JSON.stringify(error, null, 2))
-        return
-      }
+  //     if (error) {
+  //       console.error('❌ Error fetching meals:', error)
+  //       console.error('❌ Error details:', JSON.stringify(error, null, 2))
+  //       return
+  //     }
 
-      console.log('✅ Fetched', data?.length || 0, 'meals')
-      console.log('📊 Total count in DB:', count)
-      console.log('📊 Meals data:', data)
+  //     console.log('✅ Fetched', data?.length || 0, 'meals')
+  //     console.log('📊 Total count in DB:', count)
+  //     console.log('📊 Meals data:', data)
       
-      if (data && data.length > 0) {
-        console.log('🔍 First meal:', data[0])
-        console.log('🔍 Last meal:', data[data.length - 1])
-      }
+  //     if (data && data.length > 0) {
+  //       console.log('🔍 First meal:', data[0])
+  //       console.log('🔍 Last meal:', data[data.length - 1])
+  //     }
       
-      // Create a new array to ensure React sees it as changed
-      const newMeals = data ? [...data] : []
-      console.log('📝 Setting meals state with', newMeals.length, 'meals')
-      setMeals(newMeals)
+  //     // Create a new array to ensure React sees it as changed
+  //     const newMeals = data ? [...data] : []
+  //     console.log('📝 Setting meals state with', newMeals.length, 'meals')
+  //     setMeals(newMeals)
       
-      console.log('✅ Meals state updated')
-    } catch (err) {
-      console.error('❌ Exception in getMeals:', err)
-    }
-  }
+  //     console.log('✅ Meals state updated')
+  //   } catch (err) {
+  //     console.error('❌ Exception in getMeals:', err)
+  //   }
+  // }
 
   const recs = [
     'Add some fruit for vitamins and fiber',
@@ -355,22 +391,21 @@ export default function Page() {
       >
         <div className="space-y-4">
           {/* Upload Status Messages */}
-          {uploading && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-              <p className="text-blue-700 font-semibold">Uploading and analyzing your meal...</p>
+          {previewUrl && (
+            <div className="w-full flex justify-center">
+              <img src={previewUrl} alt="preview" className="max-h-64 rounded-xl border" />
             </div>
           )}
           
-          {uploadError && (
+          {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-              <p className="text-red-700">{uploadError}</p>
+              <p className="text-red-700">{error}</p>
             </div>
           )}
 
           {/* Upload Box - Clickable */}
           <button
             onClick={() => uploadRef.current?.click()}
-            disabled={uploading}
             className="w-full bg-white border-4 border-[#2BAA66] rounded-2xl p-12 hover:bg-[#F1FBF6] transition-all cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="text-center space-y-4">
@@ -391,7 +426,6 @@ export default function Page() {
           {/* Take Photo Button - Separate */}
           <button
             onClick={() => cameraRef.current?.click()}
-            disabled={uploading}
             className="w-full bg-[#2BAA66] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[#27A05F] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             <Camera size={20} strokeWidth={2} />
@@ -416,11 +450,36 @@ export default function Page() {
         />
       </Section>
 
-      {/* <Section title="Debug" subtitle="Backend Connection">
-        <p className="text-sm text-[#5E7F73]">
-          <strong>Backend Response:</strong> {message}
-        </p>
-      </Section> */}
+      {isAnalyzing && (
+        <Section title="Analyzing" subtitle="Running ML analysis...">
+          <p className="text-[#5E7F73]">Please wait...</p>
+        </Section>
+      )}
+
+      {mlResult && (
+        <Section title="Analysis Result" subtitle="Predicted classes and food pyramid">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-xl border">
+              <h3 className="font-semibold text-[#0B3B29] mb-2">Top Classes</h3>
+              <ul className="list-disc pl-5 text-[#5E7F73]">
+                {(mlResult.result?.top_classes || []).map((c: any) => (
+                  <li key={c.label}>{c.label} — {(c.prob * 100).toFixed(1)}%</li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-white p-4 rounded-xl border">
+              <h3 className="font-semibold text-[#0B3B29] mb-2">Food Pyramid</h3>
+              <ul className="list-disc pl-5 text-[#5E7F73]">
+                {(mlResult.result?.pyramid || []).map((p: any) => (
+                  <li key={p.name}>
+                    {p.name}: {p.yes_no} {(p.prob * 100).toFixed(1)}%
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Section>
+      )}
 
       <footer className="text-center text-[#5E7F73] mt-6">
         <small>© {new Date().getFullYear()} NutriBalance</small>
