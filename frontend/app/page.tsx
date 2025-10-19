@@ -157,7 +157,7 @@ export default function Page() {
             <PrimaryButton onClick={() => router.push('/login')}>Sign In</PrimaryButton>
           )}
         </div>
-        <h1 className="text-4xl font-bold text-[#0B3B29]">NutriBalance</h1>
+        <h1 className="text-4xl font-bold text-[#0B3B29]">NutriScope</h1>
         <p className="text-[#5E7F73] text-lg">
           Track your daily food groups and build a balanced diet
         </p>
